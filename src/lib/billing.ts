@@ -8,7 +8,7 @@ export type SubscriptionStatus =
   | "canceled"
   | "incomplete";
 
-export type PlanType = "free" | "pro_monthly" | "pro_annual";
+export type PlanType = "free" | "starter_monthly" | "pro_monthly" | "pro_annual";
 
 type UserRow = {
   id: number;
@@ -46,7 +46,7 @@ export function mapStripeStatus(status: string): SubscriptionStatus {
 }
 
 export function isProByStatus(status: SubscriptionStatus, plan: PlanType) {
-  return (status === "active" || status === "trialing") && plan !== "free";
+  return (status === "active" || status === "trialing") && (plan === "pro_monthly" || plan === "pro_annual");
 }
 
 export async function getOrCreateUserBySession(sessionId: string, email?: string | null) {

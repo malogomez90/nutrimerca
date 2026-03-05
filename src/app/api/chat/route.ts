@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadFoodsCsv } from "@/lib/csv-loader";
 import { consumeDemoQuota } from "@/lib/demo-quota";
+import { consumeMonthlyQuota } from "@/lib/message-quota";
 import { validateNutritionRules } from "@/lib/nutrition-rules";
 import { getBillingStatusBySession } from "@/lib/billing";
 
@@ -19,6 +20,7 @@ type ChatPayload = {
 };
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const FREE_TOTAL_MESSAGES = 5;
 
 function badRequest(message: string) {
   return NextResponse.json(
@@ -72,22 +74,43 @@ export async function POST(req: Request) {
 
     const billing = await getBillingStatusBySession(body.sessionId!);
 
-    const quota = billing.isPro
-      ? {
-          allowed: true as const,
-          remainingFreeMessages: 999,
-        }
-      : await consumeDemoQuota(body.sessionId!);
+    const quotaRaw =
+      billing.plan === "pro_monthly" || billing.plan === "pro_annual"
+        ? await consumeMonthlyQuota(body.sessionId!, billing.plan)
+        : billing.plan === "starter_monthly"
+          ? await consumeMonthlyQuota(body.sessionId!, "starter_monthly")
+          : await consumeDemoQuota(body.sessionId!);
+
+    const quota =
+      "remainingFreeMessages" in quotaRaw
+        ? {
+            allowed: quotaRaw.allowed,
+            remainingMessages: quotaRaw.remainingFreeMessages,
+            totalMessages: FREE_TOTAL_MESSAGES,
+            usedMessages: Math.max(0, FREE_TOTAL_MESSAGES - quotaRaw.remainingFreeMessages),
+          }
+        : quotaRaw;
 
     if (!quota.allowed) {
+      const message =
+        billing.plan === "starter_monthly"
+          ? "Has alcanzado el límite mensual de Starter (30 mensajes)."
+          : billing.plan === "pro_monthly" || billing.plan === "pro_annual"
+            ? "Has alcanzado el límite mensual de tu plan Pro (150 mensajes)."
+            : "Has alcanzado el límite gratuito de 5 mensajes.";
+
       return NextResponse.json(
         {
           error: {
             code: "QUOTA_EXCEEDED",
-            message: "Has alcanzado el límite gratuito de 5 mensajes.",
+            message,
           },
           usage: {
-            remainingFreeMessages: 0,
+            remainingMessages: 0,
+            totalMessages: quota.totalMessages,
+            usedMessages: quota.usedMessages,
+            plan: billing.plan,
+            isPro: billing.isPro,
           },
         },
         { status: 429 }
@@ -190,7 +213,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       reply,
       usage: {
-        remainingFreeMessages: billing.isPro ? null : quota.remainingFreeMessages,
+        remainingMessages: quota.remainingMessages,
+        totalMessages: quota.totalMessages,
+        usedMessages: quota.usedMessages,
+        plan: billing.plan,
         isPro: billing.isPro,
       },
     });

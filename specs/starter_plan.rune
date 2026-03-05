@@ -1,0 +1,83 @@
+# Rune Contract: starter_plan
+
+version: 2.0.0
+module: billing.starter_plan
+critical: true
+status: approved
+
+## Propósito
+Habilitar plan Starter y Pro con cuotas mensuales de chat diferenciadas.
+
+## Alcance
+1. Checkout debe aceptar `starter_monthly`, `pro_monthly` y `pro_annual`.
+2. Webhook debe mapear cada plan desde su `price_id`.
+3. Entitlements server-side:
+   - `free`: 5 mensajes totales demo (no se reinician).
+   - `starter_monthly` activo/trialing: 30 mensajes por mes calendario UTC.
+   - `pro_monthly|pro_annual` activo/trialing: 150 mensajes por mes calendario UTC.
+
+## Entrada (checkout)
+```json
+{
+  "sessionId": "string",
+  "plan": "starter_monthly|pro_monthly|pro_annual",
+  "email": "string?"
+}
+```
+
+## Reglas
+1. `sessionId` obligatorio 8..128.
+2. `plan` obligatorio y solo valores permitidos.
+3. Cada plan requiere su `STRIPE_PRICE_*` configurado:
+   - `starter_monthly` => `STRIPE_PRICE_STARTER_MONTHLY`
+   - `pro_monthly` => `STRIPE_PRICE_PRO_MONTHLY`
+   - `pro_annual` => `STRIPE_PRICE_PRO_ANNUAL`
+4. Entitlements se calculan solo server-side desde DB + estado de suscripción.
+5. Starter o Pro con estado `past_due|canceled|incomplete|free` cae a reglas Free.
+6. Nunca conceder ilimitado a ningún plan.
+7. Todos los planes usan GPT-5.2 (mismo modelo).
+8. Integración sobre DB actual (`users`, `subscriptions`, `demo_quota`, `billing_events`) + cuota mensual adicional.
+
+## Persistencia adicional
+Tabla `message_quota_monthly` (compartida por Starter y Pro):
+```sql
+session_id    VARCHAR(128) NOT NULL,
+month_key     CHAR(7)      NOT NULL,   -- YYYY-MM UTC
+used_messages INTEGER      NOT NULL DEFAULT 0,
+updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+PRIMARY KEY (session_id, month_key)
+```
+
+## Límites
+| Plan             | Mensajes       | Reinicio           |
+|------------------|----------------|--------------------|
+| free             | 5 totales      | Nunca              |
+| starter_monthly  | 30 por mes     | Mes calendario UTC |
+| pro_monthly      | 150 por mes    | Mes calendario UTC |
+| pro_annual       | 150 por mes    | Mes calendario UTC |
+
+## Salida de uso chat
+```json
+{
+  "usage": {
+    "isPro": "boolean",
+    "plan": "free|starter_monthly|pro_monthly|pro_annual",
+    "remainingMessages": "number",
+    "totalMessages": "number",
+    "usedMessages": "number"
+  }
+}
+```
+
+## Invariantes
+1. `isPro` es `true` solo para `pro_monthly|pro_annual` en estado `active|trialing`.
+2. Pro no consume cuota de Starter ni de Free.
+3. Starter nunca usa cuota demo de 5 si su plan está activo/trialing.
+4. Reinicio de cuota al cambiar `month_key` (UTC) para Starter y Pro.
+5. Pro nunca es ilimitado (máximo 150 mensajes/mes).
+
+## Fases futuras (no implementar ahora)
+1. Features diferenciadas (export PDF, plan semanal solo Pro).
+2. Reverse trial (7 días Pro gratis al registrar Starter).
+3. Nudges de upgrade (barra de progreso, modales persuasivos).
+4. Feature discovery temporal (desbloqueo 24h).

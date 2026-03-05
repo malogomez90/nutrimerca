@@ -13,7 +13,7 @@ type CheckoutPayload = {
   email?: string;
 };
 
-const ALLOWED_PLANS: PlanType[] = ["pro_monthly", "pro_annual"];
+const ALLOWED_PLANS: PlanType[] = ["starter_monthly", "pro_monthly", "pro_annual"];
 
 function badRequest(message: string) {
   return NextResponse.json(
@@ -64,10 +64,11 @@ export async function POST(req: Request) {
 
     const stripe = getStripeClient();
     const appUrl = process.env.APP_URL;
+    const starterPriceId = process.env.STRIPE_PRICE_STARTER_MONTHLY;
     const monthlyPriceId = process.env.STRIPE_PRICE_PRO_MONTHLY;
     const annualPriceId = process.env.STRIPE_PRICE_PRO_ANNUAL;
 
-    if (!appUrl || !monthlyPriceId || !annualPriceId) {
+    if (!appUrl || !starterPriceId || !monthlyPriceId || !annualPriceId) {
       return NextResponse.json(
         {
           error: {
@@ -94,7 +95,12 @@ export async function POST(req: Request) {
       await updateUserStripeCustomerId(user.id, customer.id);
     }
 
-    const price = plan === "pro_annual" ? annualPriceId : monthlyPriceId;
+    const price =
+      plan === "starter_monthly"
+        ? starterPriceId
+        : plan === "pro_annual"
+          ? annualPriceId
+          : monthlyPriceId;
 
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",

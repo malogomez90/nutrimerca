@@ -28,10 +28,12 @@ export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [remainingFreeMessages, setRemainingFreeMessages] = useState(5);
+  const [remainingMessages, setRemainingMessages] = useState(5);
+  const [totalMessages, setTotalMessages] = useState(5);
   const [error, setError] = useState<string | null>(null);
   const [isPro, setIsPro] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"pro_monthly" | "pro_annual">("pro_monthly");
+  const [currentPlan, setCurrentPlan] = useState<"free" | "starter_monthly" | "pro_monthly" | "pro_annual">("free");
+  const [selectedPlan, setSelectedPlan] = useState<"starter_monthly" | "pro_monthly" | "pro_annual">("starter_monthly");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [billingLoading, setBillingLoading] = useState(true);
@@ -44,6 +46,16 @@ export default function Home() {
         if (!res.ok) return;
         const data = await res.json();
         setIsPro(Boolean(data?.billing?.isPro));
+        if (typeof data?.billing?.plan === "string") {
+          setCurrentPlan(data.billing.plan);
+        }
+        if (data?.billing?.plan === "starter_monthly") {
+          setTotalMessages(30);
+        } else if (data?.billing?.plan === "pro_monthly" || data?.billing?.plan === "pro_annual") {
+          setTotalMessages(150);
+        } else {
+          setTotalMessages(5);
+        }
       } finally {
         setBillingLoading(false);
       }
@@ -53,8 +65,8 @@ export default function Home() {
   }, []);
 
   const canSend = useMemo(
-    () => input.trim().length > 0 && !loading && (isPro || remainingFreeMessages > 0),
-    [input, loading, remainingFreeMessages, isPro]
+    () => input.trim().length > 0 && !loading && remainingMessages > 0,
+    [input, loading, remainingMessages]
   );
 
   async function startCheckout(plan = selectedPlan) {
@@ -138,7 +150,7 @@ export default function Home() {
 
       if (!res.ok) {
         if (data?.error?.code === "QUOTA_EXCEEDED") {
-          setRemainingFreeMessages(0);
+          setRemainingMessages(0);
         }
         throw new Error(data?.error?.message ?? "Error inesperado en el chat");
       }
@@ -147,8 +159,14 @@ export default function Home() {
       if (typeof data?.usage?.isPro === "boolean") {
         setIsPro(data.usage.isPro);
       }
-      if (typeof data?.usage?.remainingFreeMessages === "number") {
-        setRemainingFreeMessages(data.usage.remainingFreeMessages);
+      if (typeof data?.usage?.plan === "string") {
+        setCurrentPlan(data.usage.plan);
+      }
+      if (typeof data?.usage?.remainingMessages === "number") {
+        setRemainingMessages(data.usage.remainingMessages);
+      }
+      if (typeof data?.usage?.totalMessages === "number") {
+        setTotalMessages(data.usage.totalMessages);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error inesperado";
@@ -226,9 +244,11 @@ export default function Home() {
       <section id="demo" className="mx-auto max-w-6xl px-6 py-12">
         <h2 className="text-2xl font-bold">Demo interactiva</h2>
         <p className="mt-2 text-zinc-600">
-          {isPro
-            ? "Tu plan Pro está activo: tienes acceso completo al chat."
-            : "Tienes 5 mensajes gratis para probar el chat."}
+          {currentPlan === "starter_monthly"
+            ? "Tu plan Starter está activo: tienes 30 mensajes mensuales."
+            : currentPlan === "pro_monthly" || currentPlan === "pro_annual"
+              ? "Tu plan Pro está activo: tienes 150 mensajes mensuales."
+              : "Tienes 5 mensajes gratis para probar el chat."}
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -279,16 +299,28 @@ export default function Home() {
 
           {isPro ? (
             <p className="mt-3 text-sm font-medium text-emerald-700">Plan Pro activo ✅</p>
+          ) : currentPlan === "starter_monthly" ? (
+            <p className="mt-3 text-sm font-medium text-emerald-700">Plan Starter activo ✅</p>
           ) : (
-            <p className="mt-3 text-sm text-zinc-600">Te quedan {remainingFreeMessages}/5 mensajes gratis.</p>
+            <p className="mt-3 text-sm text-zinc-600">Te quedan {remainingMessages}/{totalMessages} mensajes.</p>
           )}
 
-          {!isPro && remainingFreeMessages === 0 && (
+          {!isPro && remainingMessages === 0 && (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-semibold text-emerald-900">
-                Has llegado al límite gratis. Desbloquea Pro para continuar sin límite.
+                Has llegado al límite de tu plan actual.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedPlan("starter_monthly")}
+                  className={`rounded-full px-3 py-1 text-sm ${
+                    selectedPlan === "starter_monthly"
+                      ? "bg-emerald-600 text-white"
+                      : "border border-zinc-300 bg-white text-zinc-700"
+                  }`}
+                >
+                  Starter
+                </button>
                 <button
                   onClick={() => setSelectedPlan("pro_monthly")}
                   className={`rounded-full px-3 py-1 text-sm ${
@@ -315,7 +347,7 @@ export default function Home() {
                 disabled={checkoutLoading}
                 className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {checkoutLoading ? "Redirigiendo..." : "Empezar Pro"}
+                {checkoutLoading ? "Redirigiendo..." : "Elegir plan"}
               </button>
             </div>
           )}
@@ -335,16 +367,28 @@ export default function Home() {
 
       <section id="precios" className="mx-auto max-w-6xl px-6 py-12">
         <h2 className="text-2xl font-bold">Precios</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <article className="rounded-xl border p-5">
+            <h3 className="font-semibold">Free</h3>
+            <p className="mt-2 text-3xl font-bold">0€</p>
+            <p className="mt-2 text-sm text-zinc-600">5 mensajes demo totales.</p>
+          </article>
           <article className="rounded-xl border p-5">
             <h3 className="font-semibold">Starter</h3>
-            <p className="mt-2 text-3xl font-bold">9€/mes</p>
-            <p className="mt-2 text-sm text-zinc-600">30 dietas/mes, historial 7 días.</p>
+            <p className="mt-2 text-3xl font-bold">4,99€/mes</p>
+            <p className="mt-2 text-sm text-zinc-600">30 mensajes/mes.</p>
+            <button
+              onClick={() => startCheckout("starter_monthly")}
+              disabled={checkoutLoading}
+              className="mt-4 rounded-lg border border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+            >
+              {checkoutLoading ? "Redirigiendo..." : "Elegir Starter"}
+            </button>
           </article>
           <article className="rounded-xl border-2 border-emerald-500 p-5">
             <h3 className="font-semibold">Pro</h3>
-            <p className="mt-2 text-3xl font-bold">29€/mes</p>
-            <p className="mt-2 text-sm text-zinc-600">Ilimitado, historial permanente, exportación.</p>
+            <p className="mt-2 text-3xl font-bold">14,99€/mes</p>
+            <p className="mt-2 text-sm text-zinc-600">150 mensajes/mes, historial y exportación.</p>
             <button
               onClick={() => startCheckout("pro_monthly")}
               disabled={checkoutLoading}

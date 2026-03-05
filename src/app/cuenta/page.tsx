@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 type BillingStatus = {
   isPro: boolean;
-  plan: "free" | "pro_monthly" | "pro_annual";
+  plan: "free" | "starter_monthly" | "pro_monthly" | "pro_annual";
   status: "free" | "trialing" | "active" | "past_due" | "canceled" | "incomplete";
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -22,6 +22,7 @@ function getSessionId() {
 }
 
 function formatPlan(plan: BillingStatus["plan"]) {
+  if (plan === "starter_monthly") return "Starter mensual";
   if (plan === "pro_monthly") return "Pro mensual";
   if (plan === "pro_annual") return "Pro anual";
   return "Free";

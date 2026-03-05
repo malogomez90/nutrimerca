@@ -13,6 +13,7 @@ import { getStripeClient } from "@/lib/stripe";
 function resolvePlan(priceId: string | undefined): PlanType {
   if (!priceId) return "free";
 
+  if (priceId === process.env.STRIPE_PRICE_STARTER_MONTHLY) return "starter_monthly";
   if (priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) return "pro_annual";
   if (priceId === process.env.STRIPE_PRICE_PRO_MONTHLY) return "pro_monthly";
   return "free";

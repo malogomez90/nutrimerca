@@ -72,6 +72,16 @@ export async function ensureCoreSchema() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `);
+
+      await query(`
+        CREATE TABLE IF NOT EXISTS message_quota_monthly (
+          session_id VARCHAR(128) NOT NULL,
+          month_key CHAR(7) NOT NULL,
+          used_messages INTEGER NOT NULL DEFAULT 0,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (session_id, month_key)
+        );
+      `);
     })();
   }
 
