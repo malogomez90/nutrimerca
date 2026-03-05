@@ -1,0 +1,72 @@
+# Rune Contract: csv_loader_min
+
+version: 1.0.0
+module: data.csv_loader
+critical: true
+status: draft
+
+## Propósito
+Definir contrato mínimo de lectura segura del CSV de Mercadona sin imponer lógica avanzada de filtrado,
+garantizando esquema base, parseo seguro y errores claros.
+
+## Entrada
+```json
+{
+  "filePath": "data/foods_dataset_final.csv"
+}
+```
+
+## Esquema mínimo requerido
+Columnas mínimas obligatorias (case-insensitive, trim aplicado):
+- `nombre`
+- `kcal`
+- `proteinas`
+- `grasas`
+- `carbohidratos`
+
+Columnas opcionales:
+- `categoria`
+- `restricciones`
+- `raciones`
+
+## Reglas
+1. Si el archivo no existe, devolver error explícito `CSV_NOT_FOUND`.
+2. Si falta alguna columna mínima, devolver `CSV_SCHEMA_INVALID` indicando columnas faltantes.
+3. Parseo numérico seguro para `kcal`, `proteinas`, `grasas`, `carbohidratos`.
+4. Filas con parseo numérico imposible se marcan como inválidas y no se usan en contexto.
+5. El resultado incluye resumen de filas válidas/descartadas.
+
+## Salida
+```json
+{
+  "rows": [
+    {
+      "nombre": "string",
+      "kcal": "number",
+      "proteinas": "number",
+      "grasas": "number",
+      "carbohidratos": "number",
+      "categoria": "string?",
+      "restricciones": ["string"]
+    }
+  ],
+  "stats": {
+    "validRows": "number",
+    "discardedRows": "number"
+  }
+}
+```
+
+## Errores
+```json
+{
+  "error": {
+    "code": "CSV_NOT_FOUND|CSV_SCHEMA_INVALID|CSV_PARSE_ERROR",
+    "message": "string"
+  }
+}
+```
+
+## Invariantes
+1. Ninguna fila devuelta en `rows` puede tener macros no numéricas.
+2. `validRows + discardedRows` = total de filas procesadas (sin cabecera).

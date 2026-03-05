@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "wavespeed": {
+      "command": "C:\\Users\\MANUEL\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "args": [
+        "E:\\proyectos\\nutrimerca\\mcp\\wavespeed\\server.py"
+      ],
+      "env": {
+        "WAVESPEED_API_KEY": "94328adf6194d16d19e5c564143888095bbcf4742d941a90f1f400a9bbdf6cba"
+      }
+    }
+  }
+}

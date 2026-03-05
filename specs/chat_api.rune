@@ -1,0 +1,81 @@
+# Rune Contract: chat_api
+
+version: 1.0.0
+module: api.chat
+critical: true
+status: draft
+
+## Propósito
+Definir el contrato estricto de `POST /api/chat` para mantener comportamiento conversacional nativo del modelo,
+aplicando únicamente garantías técnicas (validación de entrada, errores, timeout, cuota demo e integración CSV).
+
+## Endpoint
+- method: POST
+- path: /api/chat
+- content-type: application/json
+
+## Entrada (request)
+```json
+{
+  "messages": [
+    { "role": "system|user|assistant", "content": "string" }
+  ],
+  "sessionId": "string",
+  "profile": {
+    "goal": "string?",
+    "restrictions": ["string"]
+  }
+}
+```
+
+### Reglas de validación
+1. `messages` es obligatorio, array, longitud mínima 1, máxima 30.
+2. Cada mensaje debe tener `role` válido y `content` no vacío.
+3. Suma total de caracteres en `messages.content` <= 20_000.
+4. `sessionId` obligatorio, string 8..128 chars.
+5. `profile.restrictions` opcional, máximo 20 elementos.
+
+## Flujo obligatorio
+1. Validar payload.
+2. Verificar cuota demo (`demo_quota.rune`).
+3. Cargar contexto CSV mínimo válido (`csv_loader_min.rune`).
+4. Aplicar validaciones de negocio nutricional si corresponde (`nutrition_rules.rune`).
+5. Llamar a GPT-5.2 sin imponer formato rígido conversacional.
+6. Devolver respuesta en JSON.
+
+## Salida (response)
+### 200 OK
+```json
+{
+  "reply": "string",
+  "usage": {
+    "remainingFreeMessages": "number"
+  }
+}
+```
+
+### Errores
+- 400: payload inválido.
+- 401: sesión inválida/no autorizada (si aplica).
+- 429: cuota demo agotada.
+- 500: error interno controlado.
+- 504: timeout de proveedor IA.
+
+```json
+{
+  "error": {
+    "code": "BAD_REQUEST|UNAUTHORIZED|QUOTA_EXCEEDED|INTERNAL_ERROR|UPSTREAM_TIMEOUT",
+    "message": "string"
+  }
+}
+```
+
+## Restricciones no funcionales
+1. Timeout máximo upstream IA: 25s.
+2. Nunca exponer API keys en respuesta.
+3. Logs sin datos sensibles.
+4. No rigidizar tono/estilo del modelo.
+
+## Invariantes
+1. Respuestas de negocio deben ser deterministas en estructura de error.
+2. La capa técnica no modifica artificialmente la naturalidad del output.

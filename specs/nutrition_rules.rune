@@ -1,0 +1,54 @@
+# Rune Contract: nutrition_rules
+
+version: 1.0.0
+module: domain.nutrition_rules
+critical: true
+status: draft
+
+## Propósito
+Definir validaciones de negocio nutricional que afectan a la coherencia del plan generado,
+sin imponer formato conversacional al modelo.
+
+## Entrada
+```json
+{
+  "profile": {
+    "goal": "string?",
+    "restrictions": ["sin_lactosa|sin_gluten|vegano|vegetariano|string"]
+  },
+  "foods": [
+    {
+      "nombre": "string",
+      "kcal": "number",
+      "proteinas": "number",
+      "grasas": "number",
+      "carbohidratos": "number",
+      "restricciones": ["string"]
+    }
+  ]
+}
+```
+
+## Reglas
+1. Todo alimento debe tener macros y kcal numéricas no negativas.
+2. Si hay `restrictions` en perfil, el subconjunto de alimentos de contexto debe respetarlas.
+3. Si no hay suficientes alimentos compatibles para una restricción, devolver advertencia técnica controlada.
+4. No bloquear conversación por preferencias no críticas; solo por inconsistencias de datos o restricción incompatible.
+
+## Salida
+```json
+{
+  "compatibleFoods": ["food"],
+  "warnings": ["string"],
+  "errors": [
+    {
+      "code": "NUTRITION_DATA_INVALID|RESTRICTION_CONFLICT",
+      "message": "string"
+    }
+  ]
+}
+```
+
+## Invariantes
+1. `compatibleFoods` nunca contiene alimentos que violen restricciones declaradas.
+2. La validación no altera el estilo conversacional de salida; solo el contexto técnico de entrada.

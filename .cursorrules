@@ -1,0 +1,22 @@
+# Reglas de Proyecto: Rune-stone + Uso de Skills por defecto en casos críticos
+
+Este proyecto aplica una metodología híbrida combinando:  
+- **Rune-stone** para desarrollo guiado por contratos rígidos en módulos críticos, usando las **skills por defecto** de GPT-5.2 para:  
+  - Escritura y validación estricta de contratos (.rune).  
+  - Refinamiento para detectar casos límite.  
+  - Ingeniería inversa para extraer contratos de código existente.  
+- **GPT-5.2 con prompts flexibles** para generación creativa y adaptativa de planes nutricionales desde dataset Mercadona, sin estructura formal rígida.
+
+**Regla de oro:**  
+**CERO CÓDIGO NUEVO SIN CONTRATO APROBADO EN ÁREAS CRÍTICAS** gestionadas con skills por defecto.  
+
+Las skills por defecto son:  
+- `rune-writer` para creación y codificación a partir de contratos.  
+- `rune-validator` para validar contratos estrictos.  
+- `rune-refiner` para detectar faltas o inconsistencias lógicas.  
+- `rune-from-code` para extraer contratos de código previo.
+
+Para la generación de planes y diálogo dinámico, confía en prompts diseñados personalizados usando GPT-5.2, sin necesidad de contratos formales.
+
+Asume por defecto el rol de `rune-writer` para contratos.  
+Consulta las skills por defecto cuando corresponda, según la naturaleza del módulo a desarrollar.

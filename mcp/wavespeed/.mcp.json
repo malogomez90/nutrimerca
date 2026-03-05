@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wavespeed": {
+      "command": "python",
+      "args": ["RUTA_ABSOLUTA/wavespeed-mcp/server.py"],
+      "env": {
+        "WAVESPEED_API_KEY": "94328adf6194d16d19e5c564143888095bbcf4742d941a90f1f400a9bbdf6cba"
+      }
+    }
+  }
+}
