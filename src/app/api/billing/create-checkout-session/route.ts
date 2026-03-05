@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import {
   getOrCreateUserBySession,
   updateUserStripeCustomerId,
@@ -24,6 +25,27 @@ function badRequest(message: string) {
     },
     { status: 400 }
   );
+}
+
+function formatCheckoutError(error: unknown) {
+  if (error instanceof Stripe.errors.StripeError) {
+    return {
+      code: error.code ?? "STRIPE_ERROR",
+      message: `Stripe: ${error.message}`,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      code: "INTERNAL_ERROR",
+      message: error.message || "Error interno creando checkout.",
+    };
+  }
+
+  return {
+    code: "INTERNAL_ERROR",
+    message: "Error interno creando checkout.",
+  };
 }
 
 export async function POST(req: Request) {
@@ -107,12 +129,15 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ checkoutUrl: checkout.url });
-  } catch {
+  } catch (error) {
+    const formatted = formatCheckoutError(error);
+    console.error("[billing:create-checkout-session]", error);
+
     return NextResponse.json(
       {
         error: {
-          code: "INTERNAL_ERROR",
-          message: "Error interno creando checkout.",
+          code: formatted.code,
+          message: formatted.message,
         },
       },
       { status: 500 }
