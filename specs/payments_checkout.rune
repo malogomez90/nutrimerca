@@ -1,0 +1,46 @@
+# Rune Contract: payments_checkout
+
+version: 1.0.0
+module: api.billing.checkout
+critical: true
+status: approved
+
+## Propósito
+Definir el contrato estricto de creación de sesión de Stripe Checkout para suscripción Pro.
+
+## Endpoint
+- method: POST
+- path: /api/billing/create-checkout-session
+- content-type: application/json
+
+## Entrada
+```json
+{
+  "sessionId": "string",
+  "plan": "pro_monthly|pro_annual",
+  "email": "string?"
+}
+```
+
+## Reglas
+1. `sessionId` obligatorio, 8..128 chars.
+2. `plan` obligatorio y limitado a `pro_monthly|pro_annual`.
+3. Crear/recuperar usuario interno por `sessionId`.
+4. Crear/reutilizar `stripe_customer_id`.
+5. Crear sesión de checkout en modo `subscription`.
+
+## Salida
+### 200 OK
+```json
+{
+  "checkoutUrl": "string"
+}
+```
+
+### Errores
+- 400: payload inválido.
+- 500: configuración/stripe/db inválida.
+
+## Invariantes
+1. Nunca exponer secretos Stripe.
+2. Nunca devolver URL vacía de checkout.

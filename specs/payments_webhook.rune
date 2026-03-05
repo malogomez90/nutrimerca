@@ -1,0 +1,43 @@
+# Rune Contract: payments_webhook
+
+version: 1.0.0
+module: api.billing.webhook
+critical: true
+status: approved
+
+## Propósito
+Definir el contrato estricto para procesar eventos de Stripe y sincronizar el estado de suscripción.
+
+## Endpoint
+- method: POST
+- path: /api/billing/webhook
+- content-type: application/json
+
+## Entrada
+- body: payload raw de Stripe
+- header obligatorio: `stripe-signature`
+
+## Reglas
+1. Validar firma con `STRIPE_WEBHOOK_SECRET`.
+2. Aplicar idempotencia por `event.id`.
+3. Procesar eventos:
+   - `checkout.session.completed`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+4. Actualizar estado de suscripción en DB.
+
+## Salida
+### 200 OK
+```json
+{ "received": true }
+```
+
+### Errores
+- 400: firma inválida/payload inválido.
+- 500: error interno de persistencia.
+
+## Invariantes
+1. Un `event.id` no se procesa más de una vez.
+2. Nunca confiar en estado enviado por frontend.

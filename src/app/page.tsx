@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -30,11 +30,85 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [remainingFreeMessages, setRemainingFreeMessages] = useState(5);
   const [error, setError] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"pro_monthly" | "pro_annual">("pro_monthly");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadBillingStatus() {
+      try {
+        const sessionId = getSessionId();
+        const res = await fetch(`/api/billing/status?sessionId=${encodeURIComponent(sessionId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setIsPro(Boolean(data?.billing?.isPro));
+      } finally {
+        setBillingLoading(false);
+      }
+    }
+
+    void loadBillingStatus();
+  }, []);
 
   const canSend = useMemo(
-    () => input.trim().length > 0 && !loading && remainingFreeMessages >= 0,
-    [input, loading, remainingFreeMessages]
+    () => input.trim().length > 0 && !loading && (isPro || remainingFreeMessages > 0),
+    [input, loading, remainingFreeMessages, isPro]
   );
+
+  async function startCheckout(plan = selectedPlan) {
+    setCheckoutLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/billing/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          plan,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data?.checkoutUrl) {
+        throw new Error(data?.error?.message ?? "No se pudo iniciar el checkout");
+      }
+
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error iniciando checkout";
+      setError(message);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
+
+  async function openBillingPortal() {
+    setPortalLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/billing/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: getSessionId() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data?.portalUrl) {
+        throw new Error(data?.error?.message ?? "No se pudo abrir el portal de facturación");
+      }
+
+      window.location.href = data.portalUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error abriendo facturación";
+      setError(message);
+    } finally {
+      setPortalLoading(false);
+    }
+  }
 
   async function sendMessage(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
@@ -63,11 +137,19 @@ export default function Home() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data?.error?.code === "QUOTA_EXCEEDED") {
+          setRemainingFreeMessages(0);
+        }
         throw new Error(data?.error?.message ?? "Error inesperado en el chat");
       }
 
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-      setRemainingFreeMessages(data?.usage?.remainingFreeMessages ?? remainingFreeMessages);
+      if (typeof data?.usage?.isPro === "boolean") {
+        setIsPro(data.usage.isPro);
+      }
+      if (typeof data?.usage?.remainingFreeMessages === "number") {
+        setRemainingFreeMessages(data.usage.remainingFreeMessages);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error inesperado";
       setError(message);
@@ -139,7 +221,11 @@ export default function Home() {
 
       <section id="demo" className="mx-auto max-w-6xl px-6 py-12">
         <h2 className="text-2xl font-bold">Demo interactiva</h2>
-        <p className="mt-2 text-zinc-600">Tienes 5 mensajes gratis para probar el chat.</p>
+        <p className="mt-2 text-zinc-600">
+          {isPro
+            ? "Tu plan Pro está activo: tienes acceso completo al chat."
+            : "Tienes 5 mensajes gratis para probar el chat."}
+        </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {PROMPTS.map((prompt) => (
@@ -187,7 +273,58 @@ export default function Home() {
             </button>
           </form>
 
-          <p className="mt-3 text-sm text-zinc-600">Te quedan {remainingFreeMessages}/5 mensajes gratis.</p>
+          {isPro ? (
+            <p className="mt-3 text-sm font-medium text-emerald-700">Plan Pro activo ✅</p>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-600">Te quedan {remainingFreeMessages}/5 mensajes gratis.</p>
+          )}
+
+          {!isPro && remainingFreeMessages === 0 && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-semibold text-emerald-900">
+                Has llegado al límite gratis. Desbloquea Pro para continuar sin límite.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedPlan("pro_monthly")}
+                  className={`rounded-full px-3 py-1 text-sm ${
+                    selectedPlan === "pro_monthly"
+                      ? "bg-emerald-600 text-white"
+                      : "border border-zinc-300 bg-white text-zinc-700"
+                  }`}
+                >
+                  Mensual
+                </button>
+                <button
+                  onClick={() => setSelectedPlan("pro_annual")}
+                  className={`rounded-full px-3 py-1 text-sm ${
+                    selectedPlan === "pro_annual"
+                      ? "bg-emerald-600 text-white"
+                      : "border border-zinc-300 bg-white text-zinc-700"
+                  }`}
+                >
+                  Anual
+                </button>
+              </div>
+              <button
+                onClick={() => startCheckout(selectedPlan)}
+                disabled={checkoutLoading}
+                className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {checkoutLoading ? "Redirigiendo..." : "Empezar Pro"}
+              </button>
+            </div>
+          )}
+
+          {isPro && (
+            <button
+              onClick={openBillingPortal}
+              disabled={portalLoading || billingLoading}
+              className="mt-4 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 disabled:opacity-60"
+            >
+              {portalLoading ? "Abriendo facturación..." : "Gestionar facturación"}
+            </button>
+          )}
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         </div>
       </section>
@@ -202,8 +339,15 @@ export default function Home() {
           </article>
           <article className="rounded-xl border-2 border-emerald-500 p-5">
             <h3 className="font-semibold">Pro</h3>
-            <p className="mt-2 text-3xl font-bold">15€/mes</p>
+            <p className="mt-2 text-3xl font-bold">29€/mes</p>
             <p className="mt-2 text-sm text-zinc-600">Ilimitado, historial permanente, exportación.</p>
+            <button
+              onClick={() => startCheckout("pro_monthly")}
+              disabled={checkoutLoading}
+              className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {checkoutLoading ? "Redirigiendo..." : "Suscribirme a Pro"}
+            </button>
           </article>
         </div>
       </section>

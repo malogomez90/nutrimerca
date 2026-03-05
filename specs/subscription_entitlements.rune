@@ -1,0 +1,40 @@
+# Rune Contract: subscription_entitlements
+
+version: 1.0.0
+module: domain.subscription_entitlements
+critical: true
+status: approved
+
+## Propósito
+Definir reglas estrictas de acceso para Free vs Pro en demo/chat y funcionalidades premium.
+
+## Entrada
+```json
+{
+  "subscriptionStatus": "free|trialing|active|past_due|canceled|incomplete",
+  "plan": "free|pro_monthly|pro_annual"
+}
+```
+
+## Reglas
+1. `active` o `trialing` + plan pro => acceso Pro.
+2. `past_due|canceled|incomplete|free` => acceso Free.
+3. Free mantiene límite de 5 mensajes demo.
+4. Pro desbloquea ilimitado y features premium.
+
+## Salida
+```json
+{
+  "isPro": "boolean",
+  "features": {
+    "unlimitedMessages": "boolean",
+    "history": "boolean",
+    "pdfExport": "boolean",
+    "analyticsInterpretation": "boolean"
+  }
+}
+```
+
+## Invariantes
+1. Nunca conceder Pro si la suscripción no está activa/trialing.
+2. La lógica de entitlement se calcula server-side.

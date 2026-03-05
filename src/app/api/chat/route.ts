@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { loadFoodsCsv } from "@/lib/csv-loader";
 import { consumeDemoQuota } from "@/lib/demo-quota";
 import { validateNutritionRules } from "@/lib/nutrition-rules";
+import { getBillingStatusBySession } from "@/lib/billing";
 
 type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -69,7 +70,15 @@ export async function POST(req: Request) {
     const validationError = validatePayload(body);
     if (validationError) return badRequest(validationError);
 
-    const quota = consumeDemoQuota(body.sessionId!);
+    const billing = await getBillingStatusBySession(body.sessionId!);
+
+    const quota = billing.isPro
+      ? {
+          allowed: true as const,
+          remainingFreeMessages: 999,
+        }
+      : await consumeDemoQuota(body.sessionId!);
+
     if (!quota.allowed) {
       return NextResponse.json(
         {
@@ -181,7 +190,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       reply,
       usage: {
-        remainingFreeMessages: quota.remainingFreeMessages,
+        remainingFreeMessages: billing.isPro ? null : quota.remainingFreeMessages,
+        isPro: billing.isPro,
       },
     });
   } catch (error) {

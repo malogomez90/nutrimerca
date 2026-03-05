@@ -1,0 +1,34 @@
+# Rune Contract: auth_access
+
+version: 1.0.0
+module: auth.access
+critical: true
+status: approved
+
+## Propósito
+Definir resolución de identidad mínima para acceso a recursos de pago y estado de suscripción.
+
+## Entrada
+```json
+{
+  "sessionId": "string"
+}
+```
+
+## Reglas
+1. `sessionId` obligatorio, longitud 8..128.
+2. Rutas de billing no operan sin `sessionId` válido.
+3. El estado de suscripción se resuelve server-side desde DB.
+
+## Salida
+```json
+{
+  "userId": "number",
+  "sessionId": "string",
+  "billingStatus": "free|trialing|active|past_due|canceled|incomplete"
+}
+```
+
+## Invariantes
+1. Nunca confiar en flags de cliente para habilitar Pro.
+2. El entitlement final se deriva solo de estado persistido.
