@@ -1,0 +1,52 @@
+# Rune Contract: auth_login_magic
+
+version: 1.0.0
+module: auth.login_magic
+critical: true
+status: approved
+
+## Propósito
+Definir un login mínimo por email (sin contraseña) para vincular identidad al `sessionId` existente y habilitar trazabilidad de cuenta/suscripción.
+
+## Endpoint
+- method: POST
+- path: /api/auth/login
+- content-type: application/json
+
+## Entrada
+```json
+{
+  "sessionId": "string",
+  "email": "string"
+}
+```
+
+## Reglas
+1. `sessionId` obligatorio, longitud 8..128.
+2. `email` obligatorio, formato válido básico RFC (contiene `@` y dominio).
+3. Normalizar `email` a minúsculas + trim antes de persistir.
+4. Resolver identidad por `sessionId` (crear usuario si no existe).
+5. Persistir `email` en `users.email` para el `userId` resuelto.
+6. No modificar `stripe_customer_id` ni estado de suscripción durante login.
+7. Responder de forma uniforme para evitar fuga de información sensible.
+
+## Salida
+### 200 OK
+```json
+{
+  "user": {
+    "id": "number",
+    "sessionId": "string",
+    "email": "string"
+  }
+}
+```
+
+### Errores
+- 400: `sessionId` o `email` inválidos.
+- 500: error interno de persistencia.
+
+## Invariantes
+1. La identidad final se resuelve server-side.
+2. Nunca activar Pro por login; Pro depende solo de billing persistido.
+3. Si existe usuario para `sessionId`, solo se actualiza `email`.
