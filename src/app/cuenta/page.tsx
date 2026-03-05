@@ -29,9 +29,6 @@ function formatPlan(plan: BillingStatus["plan"]) {
 }
 
 export default function CuentaPage() {
-  const [emailInput, setEmailInput] = useState("");
-  const [accountEmail, setAccountEmail] = useState<string | null>(null);
-  const [loginLoading, setLoginLoading] = useState(false);
   const [billing, setBilling] = useState<BillingStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -41,12 +38,6 @@ export default function CuentaPage() {
     async function loadBillingStatus() {
       try {
         const sessionId = getSessionId();
-        const savedEmail = localStorage.getItem("nutrimerca_account_email");
-        if (savedEmail) {
-          setAccountEmail(savedEmail);
-          setEmailInput(savedEmail);
-        }
-
         const res = await fetch(`/api/billing/status?sessionId=${encodeURIComponent(sessionId)}`);
         const data = await res.json();
 
@@ -91,117 +82,69 @@ export default function CuentaPage() {
     }
   }
 
-  async function loginByEmail() {
-    setLoginLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: getSessionId(),
-          email: emailInput,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data?.user?.email) {
-        throw new Error(data?.error?.message ?? "No se pudo iniciar sesión");
-      }
-
-      const normalizedEmail = String(data.user.email);
-      setAccountEmail(normalizedEmail);
-      setEmailInput(normalizedEmail);
-      localStorage.setItem("nutrimerca_account_email", normalizedEmail);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error iniciando sesión";
-      setError(message);
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12 text-zinc-900">
-      <a href="/" className="text-sm text-emerald-700">← Volver al inicio</a>
-      <h1 className="mt-3 text-3xl font-bold">Mi cuenta</h1>
-      <p className="mt-2 text-zinc-600">Panel mínimo de suscripción y facturación.</p>
+    <main className="min-h-screen bg-zinc-50 px-6 py-12 text-zinc-900">
+      <div className="mx-auto max-w-4xl">
+        <a href="/" className="text-sm font-medium text-emerald-700 hover:text-emerald-800">
+          ← Volver al inicio
+        </a>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight">Mi cuenta</h1>
+        <p className="mt-2 text-zinc-600">Resumen de suscripción y facturación.</p>
 
-      <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-          <h2 className="text-lg font-semibold">Acceso básico</h2>
-          <p className="mt-1 text-sm text-zinc-600">
-            Vincula tu email a esta sesión para recuperar estado de cuenta.
-          </p>
+        <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          {loading ? (
+            <p className="text-zinc-600">Cargando estado de suscripción...</p>
+          ) : error ? (
+            <p className="text-red-600">{error}</p>
+          ) : billing ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <article className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-zinc-500">Plan actual</p>
+                <p className="mt-1 text-lg font-semibold">{formatPlan(billing.plan)}</p>
+              </article>
+              <article className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-zinc-500">Estado</p>
+                <p className="mt-1 text-lg font-semibold">{billing.status}</p>
+              </article>
+              <article className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-zinc-500">Renovación</p>
+                <p className="mt-1 text-lg font-semibold">
+                  {billing.currentPeriodEnd ? new Date(billing.currentPeriodEnd).toLocaleDateString() : "No aplica"}
+                </p>
+              </article>
+              <article className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-zinc-500">Cancelación al final del periodo</p>
+                <p className="mt-1 text-lg font-semibold">{billing.cancelAtPeriodEnd ? "Sí" : "No"}</p>
+              </article>
 
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="tu@email.com"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
-            />
-            <button
-              onClick={loginByEmail}
-              disabled={loginLoading}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {loginLoading ? "Guardando..." : "Guardar email"}
-            </button>
-          </div>
+              <div className="sm:col-span-2">
+                <p className="mb-3 text-sm text-zinc-600">
+                  Acceso: {billing.isPro ? <strong className="text-emerald-700">Pro activo ✅</strong> : <strong>Free / Starter</strong>}
+                </p>
 
-          {accountEmail && (
-            <p className="mt-2 text-sm text-emerald-700">
-              Email vinculado: <strong>{accountEmail}</strong>
-            </p>
+                {billing.plan !== "free" ? (
+                  <button
+                    onClick={openBillingPortal}
+                    disabled={portalLoading}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {portalLoading ? "Abriendo portal..." : "Gestionar facturación"}
+                  </button>
+                ) : (
+                  <a
+                    href="/#precios"
+                    className="inline-block rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold"
+                  >
+                    Ver planes
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-zinc-600">Sin datos de cuenta disponibles por ahora.</p>
           )}
-        </div>
-
-        {loading ? (
-          <p className="text-zinc-600">Cargando estado de suscripción...</p>
-        ) : error ? (
-          <p className="text-red-600">{error}</p>
-        ) : billing ? (
-          <div className="space-y-3">
-            <p>
-              Plan actual: <strong>{formatPlan(billing.plan)}</strong>
-            </p>
-            <p>
-              Estado: <strong>{billing.status}</strong>
-            </p>
-            <p>
-              Acceso: {billing.isPro ? <strong className="text-emerald-700">Pro activo ✅</strong> : <strong>Free</strong>}
-            </p>
-            <p>
-              Próxima renovación: {billing.currentPeriodEnd ? new Date(billing.currentPeriodEnd).toLocaleDateString() : "No aplica"}
-            </p>
-            <p>
-              Cancelación al final del periodo: {billing.cancelAtPeriodEnd ? "Sí" : "No"}
-            </p>
-
-            {billing.isPro ? (
-              <button
-                onClick={openBillingPortal}
-                disabled={portalLoading}
-                className="mt-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {portalLoading ? "Abriendo portal..." : "Gestionar facturación"}
-              </button>
-            ) : (
-              <a
-                href="/#precios"
-                className="inline-block rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold"
-              >
-                Ver planes
-              </a>
-            )}
-          </div>
-        ) : (
-          <p className="text-zinc-600">Sin datos de cuenta disponibles por ahora.</p>
-        )}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
