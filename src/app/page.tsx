@@ -8,9 +8,9 @@ type ChatMessage = {
 };
 
 const PROMPTS = [
-  "Hazme un día de comidas de 2000 kcal alto en proteína",
-  "Cena rápida con alimentos de Mercadona",
-  "Ajusta mi dieta para perder grasa sin pasar hambre",
+  "Cena rápida alta en protes sin cocinar",
+  "Dieta de volumen variada de 3000 kcal",
+  "Alternativas sanas a los cereales",
 ];
 
 function getSessionId() {
@@ -51,13 +51,10 @@ export default function Home() {
         }
         if (data?.billing?.plan === "starter_monthly") {
           setTotalMessages(30);
-          setRemainingMessages(30);
         } else if (data?.billing?.plan === "pro_monthly" || data?.billing?.plan === "pro_annual") {
           setTotalMessages(150);
-          setRemainingMessages(150);
         } else {
           setTotalMessages(5);
-          setRemainingMessages(5);
         }
       } finally {
         setBillingLoading(false);
@@ -80,7 +77,10 @@ export default function Home() {
       const res = await fetch("/api/billing/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: getSessionId(), plan }),
+        body: JSON.stringify({
+          sessionId: getSessionId(),
+          plan,
+        }),
       });
 
       const data = await res.json();
@@ -139,7 +139,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: getSessionId(),
-          profile: { restrictions: [] },
+          profile: {
+            restrictions: [],
+          },
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -147,15 +149,25 @@ export default function Home() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data?.error?.code === "QUOTA_EXCEEDED") setRemainingMessages(0);
+        if (data?.error?.code === "QUOTA_EXCEEDED") {
+          setRemainingMessages(0);
+        }
         throw new Error(data?.error?.message ?? "Error inesperado en el chat");
       }
 
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-      if (typeof data?.usage?.isPro === "boolean") setIsPro(data.usage.isPro);
-      if (typeof data?.usage?.plan === "string") setCurrentPlan(data.usage.plan);
-      if (typeof data?.usage?.remainingMessages === "number") setRemainingMessages(data.usage.remainingMessages);
-      if (typeof data?.usage?.totalMessages === "number") setTotalMessages(data.usage.totalMessages);
+      if (typeof data?.usage?.isPro === "boolean") {
+        setIsPro(data.usage.isPro);
+      }
+      if (typeof data?.usage?.plan === "string") {
+        setCurrentPlan(data.usage.plan);
+      }
+      if (typeof data?.usage?.remainingMessages === "number") {
+        setRemainingMessages(data.usage.remainingMessages);
+      }
+      if (typeof data?.usage?.totalMessages === "number") {
+        setTotalMessages(data.usage.totalMessages);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error inesperado";
       setError(message);
@@ -164,189 +176,172 @@ export default function Home() {
     }
   }
 
-  const planLabel =
-    currentPlan === "starter_monthly"
-      ? "Starter"
-      : currentPlan === "pro_monthly" || currentPlan === "pro_annual"
-        ? "Pro"
-        : "Free";
-
   return (
-    <main className="flex min-h-screen bg-[#f3f5fb] text-[#111827]">
-      <aside className="hidden w-72 border-r border-[#dde3f0] bg-[#eef2fb] md:flex md:flex-col">
-        <div className="border-b border-[#dde3f0] px-5 py-4">
-          <p className="text-lg font-semibold tracking-tight">Nutrimerca</p>
-          <p className="mt-1 text-xs text-[#5b667a]">Asistente nutricional</p>
-          <button className="mt-4 w-full rounded-xl bg-[#2f6fed] px-3 py-2 text-sm font-semibold text-white hover:bg-[#265bd1]">
-            + Nueva consulta
-          </button>
-        </div>
-
-        <div className="flex-1 px-4 py-4">
-          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-[#6c7892]">Accesos</p>
-          <div className="space-y-1 text-sm">
-            <a href="#" className="block rounded-lg bg-white px-3 py-2 font-medium text-[#1f2a44] shadow-sm">Chat</a>
-            <a href="/cuenta" className="block rounded-lg px-3 py-2 text-[#42506d] hover:bg-white">Cuenta</a>
-            <a href="#" className="block rounded-lg px-3 py-2 text-[#42506d] hover:bg-white">Historial</a>
+    <main className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-zinc-50 text-zinc-900">
+      <nav className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <span className="text-lg font-extrabold tracking-tight">Nutrimerca</span>
+          <div className="hidden gap-6 text-sm md:flex">
+            <a href="#como-funciona">Cómo funciona</a>
+            <a href="#demo">Demo</a>
+            <a href="#precios">Precios</a>
+            <a href="#faq">FAQ</a>
+            <a href="/cuenta">Cuenta</a>
           </div>
-
-          <div className="mt-6 rounded-xl border border-[#d8e0ef] bg-white p-3">
-            <p className="text-xs uppercase tracking-wide text-[#6c7892]">Plan actual</p>
-            <p className="mt-1 text-sm font-semibold text-[#1f2a44]">{planLabel}</p>
-            <p className="mt-1 text-xs text-[#5b667a]">
-              {billingLoading ? "Cargando..." : `${remainingMessages}/${totalMessages} mensajes`}
-            </p>
-          </div>
-        </div>
-
-        <div className="border-t border-[#dde3f0] p-4">
-          <a href="/cuenta" className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 shadow-sm hover:bg-[#f8faff]">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#d9e4ff] text-xs font-bold text-[#3158b8]">
-              NM
-            </span>
-            <span className="text-sm font-medium text-[#1f2a44]">Mi cuenta</span>
+          <a href="/chat" className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+            Ir al chat
           </a>
         </div>
-      </aside>
+      </nav>
 
-      <section className="flex min-h-screen flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-[#dfe5f2] bg-white/85 px-4 py-3 backdrop-blur md:px-8">
-          <div>
-            <h1 className="text-base font-semibold md:text-lg">Chat nutricional</h1>
-            <p className="text-xs text-[#667187]">Respuestas prácticas con alimentos habituales</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-[#d2dbec] bg-[#f8faff] px-3 py-1 text-xs font-medium text-[#485774]">
-              Plan {planLabel}
-            </span>
-            <a href="/cuenta" className="rounded-lg border border-[#d2dbec] bg-white px-3 py-1.5 text-xs font-semibold text-[#1f2a44] hover:bg-[#f8faff] md:hidden">
-              Cuenta
+      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr]">
+        <div>
+          <p className="mb-3 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+            Planes nutricionales realistas · Sin ingredientes raros
+          </p>
+          <h1 className="text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
+            Tu asistente nutricional diario para comer mejor sin complicarte.
+          </h1>
+          <p className="mt-4 text-zinc-600">
+            Respuestas prácticas, alimentos habituales y planes que sí encajan en tu rutina. Todo en un chat rápido y accionable.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <a href="/chat" className="rounded-full bg-emerald-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-emerald-700">
+              Probar chat ahora
+            </a>
+            <a href="#como-funciona" className="rounded-full border border-zinc-300 bg-white px-6 py-3 font-semibold hover:bg-zinc-50">
+              ▶ Ver cómo funciona (45s)
             </a>
           </div>
-        </header>
+        </div>
+        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-zinc-500">Usuario</p>
+          <p className="mt-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
+            Quiero perder grasa. Hazme una dieta de 1800 kcal alta en protes.
+          </p>
+          <p className="mt-4 text-sm text-zinc-500">Nutrimerca</p>
+          <p className="mt-1 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
+            ¡Hecho! Combinaremos frescos y básicos del súper con macros equilibrados.
+          </p>
+        </div>
+      </section>
 
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-3 py-4 md:px-6 md:py-6">
-          <div className="mb-3 flex flex-wrap gap-2">
-            {PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => setInput(prompt)}
-                className="rounded-full border border-[#d2dbec] bg-white px-3 py-1.5 text-xs text-[#33415c] hover:bg-[#f8faff] md:text-sm"
-              >
-                {prompt}
-              </button>
+      <section id="como-funciona" className="mx-auto max-w-6xl px-6 py-8">
+        <h2 className="text-2xl font-bold">Cómo funciona</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">1) Dime objetivo, restricciones y tiempo.</article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">2) Recibe menú variado con macros.</article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">3) Ajusta platos al momento.</article>
+        </div>
+      </section>
+
+      <section id="demo" className="mx-auto max-w-6xl px-6 py-12">
+        <h2 className="text-2xl font-bold">Demo interactiva</h2>
+        <p className="mt-2 text-zinc-600">
+          {currentPlan === "starter_monthly"
+            ? "Tu plan Starter está activo: tienes 30 mensajes mensuales."
+            : currentPlan === "pro_monthly" || currentPlan === "pro_annual"
+              ? "Tu plan Pro está activo: tienes 150 mensajes mensuales."
+              : "Tienes 5 mensajes gratis para probar el chat."}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {PROMPTS.map((prompt) => (
+            <button key={prompt} onClick={() => setInput(prompt)} className="rounded-full border border-zinc-300 px-3 py-1 text-sm">
+              {prompt}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 max-h-80 space-y-3 overflow-y-auto pr-1">
+            {messages.length === 0 && <p className="text-sm text-zinc-500">Empieza escribiendo tu objetivo nutricional.</p>}
+            {messages.map((m, idx) => (
+              <div key={`${m.role}-${idx}`} className={`rounded-xl p-3 text-sm ${m.role === "user" ? "ml-8 bg-white" : "mr-8 bg-emerald-50"}`}>
+                <p className="mb-1 text-xs uppercase text-zinc-500">{m.role === "user" ? "Tú" : "Nutrimerca"}</p>
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              </div>
             ))}
+            {loading && <p className="text-sm text-zinc-500">Nutrimerca está escribiendo...</p>}
           </div>
 
-          <div className="flex-1 overflow-y-auto rounded-2xl border border-[#d7deee] bg-white p-4 shadow-sm md:p-6">
-            {messages.length === 0 && (
-              <div className="mx-auto max-w-xl rounded-xl border border-dashed border-[#cfd8eb] bg-[#f8faff] p-5 text-center">
-                <p className="text-sm text-[#4c5b7a]">Empieza escribiendo tu objetivo y te propongo una estrategia de comida realista.</p>
+          <form onSubmit={sendMessage} className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Escribe tu objetivo..."
+              className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500"
+            />
+            <button disabled={!canSend} className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              Enviar
+            </button>
+          </form>
+
+          {isPro ? (
+            <p className="mt-3 text-sm font-medium text-emerald-700">Plan Pro activo ✅</p>
+          ) : currentPlan === "starter_monthly" ? (
+            <p className="mt-3 text-sm font-medium text-emerald-700">Plan Starter activo ✅</p>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-600">Te quedan {remainingMessages}/{totalMessages} mensajes.</p>
+          )}
+
+          {!isPro && remainingMessages === 0 && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-semibold text-emerald-900">Has llegado al límite de tu plan actual.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button onClick={() => setSelectedPlan("starter_monthly")} className={`rounded-full px-3 py-1 text-sm ${selectedPlan === "starter_monthly" ? "bg-emerald-600 text-white" : "border border-zinc-300 bg-white text-zinc-700"}`}>Starter</button>
+                <button onClick={() => setSelectedPlan("pro_monthly")} className={`rounded-full px-3 py-1 text-sm ${selectedPlan === "pro_monthly" ? "bg-emerald-600 text-white" : "border border-zinc-300 bg-white text-zinc-700"}`}>Mensual</button>
+                <button onClick={() => setSelectedPlan("pro_annual")} className={`rounded-full px-3 py-1 text-sm ${selectedPlan === "pro_annual" ? "bg-emerald-600 text-white" : "border border-zinc-300 bg-white text-zinc-700"}`}>Anual</button>
               </div>
-            )}
-
-            <div className="space-y-4">
-              {messages.map((m, idx) => (
-                <div
-                  key={`${m.role}-${idx}`}
-                  className={`max-w-[90%] rounded-2xl px-4 py-3 text-sm ${
-                    m.role === "user"
-                      ? "ml-auto border border-[#d4def4] bg-[#edf3ff] text-[#1f2a44]"
-                      : "mr-auto border border-[#d9e8d9] bg-[#effaf0] text-[#1f2a44]"
-                  }`}
-                >
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[#6b7894]">
-                    {m.role === "user" ? "Tú" : "Nutrimerca"}
-                  </p>
-                  <p className="whitespace-pre-wrap">{m.content}</p>
-                </div>
-              ))}
-            </div>
-
-            {loading && <p className="mt-4 text-sm text-[#6c7892]">Nutrimerca está escribiendo...</p>}
-            {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-[#d7deee] bg-white p-3 shadow-sm">
-            <form onSubmit={sendMessage} className="flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Escribe tu objetivo, restricciones o tu menú actual..."
-                className="flex-1 rounded-xl border border-[#d2dbec] bg-[#f9fbff] px-3 py-2 text-sm outline-none focus:border-[#7c9de9]"
-              />
-              <button
-                disabled={!canSend}
-                className="rounded-xl bg-[#2f6fed] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                Enviar
+              <button onClick={() => startCheckout(selectedPlan)} disabled={checkoutLoading} className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                {checkoutLoading ? "Redirigiendo..." : "Elegir plan"}
               </button>
-            </form>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#5f6d88]">
-              <p>
-                Uso: <strong>{remainingMessages}</strong>/<strong>{totalMessages}</strong> mensajes disponibles.
-              </p>
-              {(currentPlan === "free" || currentPlan === "starter_monthly") && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => startCheckout(selectedPlan)}
-                    disabled={checkoutLoading}
-                    className="rounded-lg border border-[#c7d5f3] bg-[#f3f7ff] px-3 py-1.5 font-semibold text-[#2f4e99]"
-                  >
-                    {checkoutLoading ? "Abriendo checkout..." : "Mejorar plan"}
-                  </button>
-                  {(currentPlan === "starter_monthly" || isPro) && (
-                    <button
-                      onClick={openBillingPortal}
-                      disabled={portalLoading || billingLoading}
-                      className="rounded-lg border border-[#d2dbec] bg-white px-3 py-1.5 font-semibold text-[#31415f]"
-                    >
-                      {portalLoading ? "Abriendo..." : "Facturación"}
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
+          )}
 
-            {!isPro && remainingMessages === 0 && (
-              <div className="mt-3 rounded-xl border border-[#f0d6a7] bg-[#fff8ea] p-3 text-xs text-[#705117]">
-                <p className="font-semibold">Has alcanzado el límite de tu plan actual.</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setSelectedPlan("starter_monthly")}
-                    className={`rounded-full px-3 py-1 ${
-                      selectedPlan === "starter_monthly"
-                        ? "bg-[#2f6fed] text-white"
-                        : "border border-[#d6dff1] bg-white text-[#42506d]"
-                    }`}
-                  >
-                    Starter
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlan("pro_monthly")}
-                    className={`rounded-full px-3 py-1 ${
-                      selectedPlan === "pro_monthly"
-                        ? "bg-[#2f6fed] text-white"
-                        : "border border-[#d6dff1] bg-white text-[#42506d]"
-                    }`}
-                  >
-                    Pro mensual
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlan("pro_annual")}
-                    className={`rounded-full px-3 py-1 ${
-                      selectedPlan === "pro_annual"
-                        ? "bg-[#2f6fed] text-white"
-                        : "border border-[#d6dff1] bg-white text-[#42506d]"
-                    }`}
-                  >
-                    Pro anual
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {isPro && (
+            <button onClick={openBillingPortal} disabled={portalLoading || billingLoading} className="mt-4 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-800 disabled:opacity-60">
+              {portalLoading ? "Abriendo facturación..." : "Gestionar facturación"}
+            </button>
+          )}
+          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        </div>
+      </section>
+
+      <section id="precios" className="mx-auto max-w-6xl px-6 py-12">
+        <h2 className="text-2xl font-bold">Precios</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+            <h3 className="font-semibold">Free</h3>
+            <p className="mt-2 text-3xl font-bold">0€</p>
+            <p className="mt-2 text-sm text-zinc-600">5 mensajes demo totales.</p>
+          </article>
+          <article className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm">
+            <h3 className="font-semibold">Starter</h3>
+            <p className="mt-2 text-3xl font-bold">4,99€/mes</p>
+            <p className="mt-2 text-sm text-zinc-600">30 mensajes/mes.</p>
+            <button onClick={() => startCheckout("starter_monthly")} disabled={checkoutLoading} className="mt-4 rounded-lg border border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60">
+              {checkoutLoading ? "Redirigiendo..." : "Elegir Starter"}
+            </button>
+          </article>
+          <article className="relative rounded-2xl border-2 border-emerald-500 bg-white p-5 shadow-sm">
+            <span className="absolute -top-3 right-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Recomendado</span>
+            <h3 className="font-semibold">Pro</h3>
+            <p className="mt-2 text-3xl font-bold">14,99€/mes</p>
+            <p className="mt-2 text-sm text-zinc-600">150 mensajes/mes, historial y exportación.</p>
+            <button onClick={() => startCheckout("pro_monthly")} disabled={checkoutLoading} className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+              {checkoutLoading ? "Redirigiendo..." : "Suscribirme a Pro"}
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section id="faq" className="mx-auto max-w-6xl px-6 py-12">
+        <h2 className="text-2xl font-bold">FAQ</h2>
+        <div className="mt-4 space-y-2 text-sm text-zinc-700">
+          <p><strong>¿Tengo que comprar todo en Mercadona?</strong> No, puedes combinar con cualquier súper.</p>
+          <p><strong>¿Nutrimerca hace la compra?</strong> No, te da menú + lista.</p>
+          <p><strong>¿Sirve para vegano/celíaco?</strong> Sí, indicando restricciones en el chat.</p>
         </div>
       </section>
     </main>
