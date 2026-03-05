@@ -168,6 +168,7 @@ export default function Home() {
             <a href="#demo">Demo</a>
             <a href="#precios">Precios</a>
             <a href="#faq">FAQ</a>
+            <a href="/cuenta">Cuenta</a>
           </div>
           <button className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">
             Crear mi dieta gratis

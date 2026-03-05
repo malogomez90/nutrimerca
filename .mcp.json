@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "ui_design_remote": {
+      "transport": "sse",
+      "url": "https://techngan.com/mcp/ui-design/sse",
+      "headers": {
+        "Authorization": "Bearer ${UI_DESIGN_MCP_TOKEN}"
+      },
+      "env": {
+        "UI_DESIGN_MCP_TOKEN": "REEMPLAZAR_EN_LOCAL"
+      }
+    },
     "wavespeed": {
       "command": "C:\\Users\\MANUEL\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
       "args": [
