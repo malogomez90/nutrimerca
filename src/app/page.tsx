@@ -193,9 +193,12 @@ export default function Home() {
             >
               Crear mi primera dieta gratis
             </a>
-            <button className="rounded-full border border-zinc-300 px-6 py-3 font-semibold">
-              ▶ Ver cómo funciona
-            </button>
+            <a
+              href="#como-funciona"
+              className="rounded-full border border-zinc-300 px-6 py-3 font-semibold"
+            >
+              ▶ Ver cómo funciona (45s)
+            </a>
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
