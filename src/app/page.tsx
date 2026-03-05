@@ -177,10 +177,10 @@ export default function Home() {
   }
 
   return (
-    <main className="bg-white text-zinc-900">
-      <nav className="sticky top-0 z-20 border-b border-zinc-200 bg-white/95 backdrop-blur">
+    <main className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-zinc-50 text-zinc-900">
+      <nav className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold">Nutrimerca</span>
+          <span className="text-lg font-extrabold tracking-tight">Nutrimerca</span>
           <div className="hidden gap-6 text-sm md:flex">
             <a href="#como-funciona">Cómo funciona</a>
             <a href="#demo">Demo</a>
@@ -188,45 +188,45 @@ export default function Home() {
             <a href="#faq">FAQ</a>
             <a href="/cuenta">Cuenta</a>
           </div>
-          <button className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white">
+          <button className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
             Crear mi dieta gratis
           </button>
         </div>
       </nav>
 
-      <section className="mx-auto grid max-w-6xl gap-8 px-6 py-16 md:grid-cols-[1.2fr_1fr]">
+      <section className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <p className="mb-3 inline-block rounded-full bg-emerald-100 px-3 py-1 text-sm text-emerald-700">
-            Cero monotonía. Cero ingredientes raros.
+          <p className="mb-3 inline-block rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
+            Planes nutricionales realistas · Sin ingredientes raros
           </p>
-          <h1 className="text-4xl font-bold leading-tight md:text-5xl">
-            Dietas variadas que sí puedes seguir, apoyadas en tus básicos de Mercadona.
+          <h1 className="text-4xl font-extrabold leading-tight tracking-tight md:text-5xl">
+            Tu asistente nutricional diario para comer mejor sin complicarte.
           </h1>
           <p className="mt-4 text-zinc-600">
-            Un chat inteligente que te ayuda con objetivos, calorías, macros y alternativas realistas con alimentos de tu día a día.
+            Respuestas prácticas, alimentos habituales y planes que sí encajan en tu rutina. Todo en un chat rápido y accionable.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="#demo"
-              className="rounded-full bg-emerald-500 px-6 py-3 font-semibold text-white"
+              className="rounded-full bg-emerald-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
               Crear mi primera dieta gratis
             </a>
             <a
               href="#como-funciona"
-              className="rounded-full border border-zinc-300 px-6 py-3 font-semibold"
+              className="rounded-full border border-zinc-300 bg-white px-6 py-3 font-semibold hover:bg-zinc-50"
             >
               ▶ Ver cómo funciona (45s)
             </a>
           </div>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-zinc-500">Usuario</p>
-          <p className="mt-1 rounded-lg bg-white p-3 text-sm">
+          <p className="mt-1 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-sm">
             Quiero perder grasa. Hazme una dieta de 1800 kcal alta en protes.
           </p>
           <p className="mt-4 text-sm text-zinc-500">Nutrimerca</p>
-          <p className="mt-1 rounded-lg bg-emerald-50 p-3 text-sm">
+          <p className="mt-1 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
             ¡Hecho! Combinaremos frescos y básicos del súper con macros equilibrados.
           </p>
         </div>
@@ -235,9 +235,9 @@ export default function Home() {
       <section id="como-funciona" className="mx-auto max-w-6xl px-6 py-8">
         <h2 className="text-2xl font-bold">Cómo funciona</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <article className="rounded-xl border p-4">1) Dime objetivo, restricciones y tiempo.</article>
-          <article className="rounded-xl border p-4">2) Recibe menú variado con macros.</article>
-          <article className="rounded-xl border p-4">3) Ajusta platos al momento.</article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">1) Dime objetivo, restricciones y tiempo.</article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">2) Recibe menú variado con macros.</article>
+          <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">3) Ajusta platos al momento.</article>
         </div>
       </section>
 
@@ -263,7 +263,7 @@ export default function Home() {
           ))}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+        <div className="mt-4 rounded-3xl border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="mb-3 max-h-80 space-y-3 overflow-y-auto pr-1">
             {messages.length === 0 && (
               <p className="text-sm text-zinc-500">Empieza escribiendo tu objetivo nutricional.</p>
@@ -368,12 +368,12 @@ export default function Home() {
       <section id="precios" className="mx-auto max-w-6xl px-6 py-12">
         <h2 className="text-2xl font-bold">Precios</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <article className="rounded-xl border p-5">
+          <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Free</h3>
             <p className="mt-2 text-3xl font-bold">0€</p>
             <p className="mt-2 text-sm text-zinc-600">5 mensajes demo totales.</p>
           </article>
-          <article className="rounded-xl border p-5">
+          <article className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-sm">
             <h3 className="font-semibold">Starter</h3>
             <p className="mt-2 text-3xl font-bold">4,99€/mes</p>
             <p className="mt-2 text-sm text-zinc-600">30 mensajes/mes.</p>
@@ -385,7 +385,8 @@ export default function Home() {
               {checkoutLoading ? "Redirigiendo..." : "Elegir Starter"}
             </button>
           </article>
-          <article className="rounded-xl border-2 border-emerald-500 p-5">
+          <article className="relative rounded-2xl border-2 border-emerald-500 bg-white p-5 shadow-sm">
+            <span className="absolute -top-3 right-4 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">Recomendado</span>
             <h3 className="font-semibold">Pro</h3>
             <p className="mt-2 text-3xl font-bold">14,99€/mes</p>
             <p className="mt-2 text-sm text-zinc-600">150 mensajes/mes, historial y exportación.</p>
